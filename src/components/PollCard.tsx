@@ -20,27 +20,14 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
-  const [showDetail, setShowDetail] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
   const pollId = poll._id;
 
-  // if (showDetail && poll.isActive) {
-  //   return <PollDetail pollId={pollId} roomCode={roomCode} onBack={() => setShowDetail(false)} />;
-  // }
-
-  // if (showResults) {
-  //   return (
-  //     <div className="max-w-2xl mx-auto w-full">
-  //       <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 flex-column">
-  //         <PollResults pollId={pollId} onBack={() => setShowResults(false)} />
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
-    <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow">
+    <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow"
+      onClick={poll.isActive ? () => onVote() : undefined}
+    >
       <div className="flex flex-col h-full">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{poll.title}</h3>
