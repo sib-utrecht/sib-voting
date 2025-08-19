@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { generateRandomCode } from "./rooms";
 
 export const list = query({
   args: { roomCode: v.string() },
@@ -7,7 +8,7 @@ export const list = query({
     const polls = await ctx.db
       .query("polls")
       .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.eq(q.field("isVisible"), true))
       .collect();
     
     return polls;
@@ -82,6 +83,7 @@ export const create = mutation({
       description: args.description,
       roomCode: args.roomCode,
       isActive: true,
+      isVisible: true,
       resultsVisible: false,
     });
 
@@ -118,19 +120,8 @@ export const vote = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    // Check if user has already voted on this poll
-    // const existingVotes = await ctx.db
-    //   .query("votes")
-    //   .withIndex("by_poll_voter", (q) => 
-    //     q.eq("pollId", args.pollId).eq("voterCode", args.voterCode)
-    //   )
-    //   .collect();
+    args.voterCode ??= generateRandomCode(12);
 
-    // if (existingVotes.length > 0) {
-    //   throw new Error("You have already voted on this poll");
-    // }
-
-    // Submit all votes
     for (const vote of args.votes) {
       await ctx.db.insert("votes", {
         pollId: args.pollId,
@@ -230,8 +221,8 @@ export const getResults = query({
   },
 });
 
-export const toggleResults = mutation({
-  args: { pollId: v.id("polls"), adminCode: v.string() },
+export const setResultsVisible = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string(), resultsVisible: v.boolean() },
   handler: async (ctx, args) => {
     // Check if this is a valid admin code
     const user = await ctx.db
@@ -249,14 +240,142 @@ export const toggleResults = mutation({
     }
 
     await ctx.db.patch(args.pollId, {
-      resultsVisible: !poll.resultsVisible,
+      resultsVisible: args.resultsVisible,
     });
 
-    return !poll.resultsVisible;
+    return args.resultsVisible;
   },
 });
 
-export const myPolls = query({
+export const setVisible = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string(), isVisible: v.boolean() },
+  handler: async (ctx, args) => {
+    // Verify admin code
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
+      .unique();
+
+    if (!user) {
+      throw new Error("Invalid admin code");
+    }
+
+    const poll = await ctx.db.get(args.pollId);
+    if (!poll) {
+      throw new Error("Poll not found");
+    }
+
+    await ctx.db.patch(args.pollId, {
+      isVisible: args.isVisible,
+    });
+
+    return args.isVisible;
+  },
+});
+
+export const setActive = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string(), isActive: v.boolean() },
+  handler: async (ctx, args) => {
+    // Verify admin code
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
+      .unique();
+
+    if (!user) {
+      throw new Error("Invalid admin code");
+    }
+
+    const poll = await ctx.db.get(args.pollId);
+    if (!poll) {
+      throw new Error("Poll not found");
+    }
+
+    await ctx.db.patch(args.pollId, {
+      isActive: args.isActive,
+    });
+
+    return args.isActive;
+  },
+});
+
+export const votesTable = query({
+  args: { pollId: v.id("polls"), adminCode: v.string() },
+  handler: async (ctx, args) => {
+    // Admin verification
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
+      .unique();
+    if (!admin) {
+      throw new Error("Invalid admin code");
+    }
+
+    const poll = await ctx.db.get(args.pollId);
+    if (!poll) {
+      throw new Error("Poll not found");
+    }
+
+    // Load questions and choices
+    const questions = await ctx.db
+      .query("questions")
+      .withIndex("by_poll", (q) => q.eq("pollId", args.pollId))
+      .collect();
+    const orderedQuestions = questions.sort((a, b) => a.order - b.order);
+
+    // Preload choices for quick lookup
+    const choiceTextById = new Map<string, string>();
+    for (const qn of orderedQuestions) {
+      const choices = await ctx.db
+        .query("choices")
+        .withIndex("by_question", (q) => q.eq("questionId", qn._id))
+        .collect();
+      for (const ch of choices) {
+        choiceTextById.set(ch._id, ch.text);
+      }
+    }
+
+    // Load all votes for this poll
+    const votes = await ctx.db
+      .query("votes")
+      .withIndex("by_poll_voter", (q) => q.eq("pollId", args.pollId))
+      .collect();
+
+    // Group votes by voterCode
+    const rowsMap = new Map<string, { voterCode: string | null; firstSeen: number; lastSeen: number; answers: Record<string, { choiceId: string; choiceText: string }>; }>();
+
+    const codeKey = (code: string | null | undefined) => (code ?? "");
+
+    for (const vDoc of votes) {
+      const key = codeKey(vDoc.voterCode);
+      if (!rowsMap.has(key)) {
+        rowsMap.set(key, {
+          voterCode: vDoc.voterCode ?? null,
+          firstSeen: vDoc._creationTime,
+          lastSeen: vDoc._creationTime,
+          answers: {},
+        });
+      }
+      const row = rowsMap.get(key)!;
+      const choiceText = choiceTextById.get(vDoc.choiceId) ?? "";
+      row.answers[vDoc.questionId] = {
+        choiceId: vDoc.choiceId,
+        choiceText,
+      };
+      if (vDoc._creationTime < row.firstSeen) row.firstSeen = vDoc._creationTime;
+      if (vDoc._creationTime > row.lastSeen) row.lastSeen = vDoc._creationTime;
+    }
+
+    const rows = Array.from(rowsMap.values()).sort((a, b) => a.firstSeen - b.firstSeen);
+
+    return {
+      questions: orderedQuestions.map((q) => ({ _id: q._id, text: q.text })),
+      rows,
+    };
+  },
+});
+
+export const listAll = query({
   args: { roomCode: v.string() },
   handler: async (ctx, args) => {
     const polls = await ctx.db

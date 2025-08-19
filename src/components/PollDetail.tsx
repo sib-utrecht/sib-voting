@@ -17,7 +17,6 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
   const vote = useMutation(api.polls.vote);
   const [selectedChoices, setSelectedChoices] = useState<Record<string, Id<"choices">>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResults, setShowResults] = useState(false);
 
   if (poll === undefined) {
     return (
@@ -39,10 +38,6 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
         </button>
       </div>
     );
-  }
-
-  if (showResults) {
-    return <PollResults pollId={pollId} onBack={onBack} />;
   }
 
   const handleChoiceSelect = (questionId: Id<"questions">, choiceId: Id<"choices">) => {

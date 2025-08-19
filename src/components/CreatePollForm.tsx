@@ -17,14 +17,16 @@ interface Question {
 export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const defaultQuestion : Question = { text: "I accept ", choices: ["Pro", "Against", "Abstain"] };
+
   const [questions, setQuestions] = useState<Question[]>([
-    { text: "", choices: ["", ""] }
+    defaultQuestion
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createPoll = useMutation(api.polls.create);
 
   const addQuestion = () => {
-    setQuestions([...questions, { text: "", choices: ["", ""] }]);
+    setQuestions([...questions, defaultQuestion]);
   };
 
   const removeQuestion = (index: number) => {

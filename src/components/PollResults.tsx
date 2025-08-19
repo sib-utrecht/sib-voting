@@ -11,7 +11,7 @@ interface PollResultsProps {
 
 export function PollResults({ pollId, adminCode, onBack }: PollResultsProps) {
   const results = useQuery(api.polls.getResults, { pollId, adminCode });
-  const toggleResults = useMutation(api.polls.toggleResults);
+  const setResultsVisible = useMutation(api.polls.setResultsVisible);
 
   if (results === undefined) {
     return (
@@ -65,11 +65,13 @@ export function PollResults({ pollId, adminCode, onBack }: PollResultsProps) {
           {isAdmin && (
             <button
               onClick={async () => {
+                if (!results) return;
+                const next = !results.resultsVisible;
                 try {
-                  const newState = await toggleResults({ pollId, adminCode });
+                  const newState = await setResultsVisible({ pollId, adminCode, resultsVisible: next });
                   toast.success(newState ? "Results are now public" : "Results are now private");
                 } catch (error) {
-                  toast.error("Failed to toggle results visibility");
+                  toast.error("Failed to update results visibility");
                 }
               }}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${results.resultsVisible

@@ -17,6 +17,7 @@ const applicationTables = {
     description: v.optional(v.string()),
     roomCode: v.string(),
     isActive: v.boolean(),
+    isVisible: v.boolean(),
     resultsVisible: v.boolean(),
   }).index("by_room", ["roomCode"]),
 

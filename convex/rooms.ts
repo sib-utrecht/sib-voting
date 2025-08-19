@@ -44,7 +44,7 @@ export const doAuth = query({
   },
 });
 
-const generateRandomCode = (length: number = 6) => {
+export const generateRandomCode = (length: number = 6) => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
   for (let i = 0; i < length; i++) {

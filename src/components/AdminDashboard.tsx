@@ -14,7 +14,7 @@ export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const roomCode = room.code;
 
-  const myPolls = useQuery(api.polls.myPolls, { roomCode });
+  const myPolls = useQuery(api.polls.listAll, { roomCode });
 
   if (myPolls === undefined) {
     return (
