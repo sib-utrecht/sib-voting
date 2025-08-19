@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { CreatePollForm } from "./CreatePollForm";
 import { AdminPollCard } from "./AdminPollCard";
 import { Room } from "@/types/room";
+import { useNavigate } from "react-router-dom";
 
 interface AdminDashboardProps {
   room: Room;
@@ -13,7 +14,9 @@ interface AdminDashboardProps {
 export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const roomCode = room.code;
+  const navigate = useNavigate();
 
+  console.log("AdminDashboard rendered with room:", room, "and adminCode:", adminCode);
   const myPolls = useQuery(api.polls.listAll, { roomCode });
 
   if (myPolls === undefined) {
@@ -31,13 +34,22 @@ export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">My Polls</h2>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
-        >
-          Create New Poll
-        </button>
+        <h2 className="text-2xl font-bold text-gray-900">Polls</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/manage")}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+            title="Manage rooms (create or join)"
+          >
+            Manage Rooms
+          </button>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
+          >
+            Create New Poll
+          </button>
+        </div>
       </div>
 
       {myPolls.length === 0 ? (

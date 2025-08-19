@@ -6,10 +6,9 @@ import { toast } from "sonner";
 interface PollResultsProps {
   pollId: Id<"polls">;
   adminCode?: string;
-  onBack: () => void;
 }
 
-export function PollResults({ pollId, adminCode, onBack }: PollResultsProps) {
+export function PollResults({ pollId, adminCode }: PollResultsProps) {
   const results = useQuery(api.polls.getResults, { pollId, adminCode });
   const setResultsVisible = useMutation(api.polls.setResultsVisible);
 
@@ -21,115 +20,60 @@ export function PollResults({ pollId, adminCode, onBack }: PollResultsProps) {
     );
   }
 
-  if (!results) {
+  if (results.error == "Results are not visible") {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 text-center">
           <div className="text-6xl mb-4">🔒</div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Results Not Available</h3>
           <p className="text-gray-500 mb-6">
-            The poll creator hasn't made the results public yet, or you need to vote first to see results.
+            The results are not public yet.
           </p>
-          <button
-            onClick={onBack}
-            className="px-4 py-2 text-primary hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            ← Back to polls
-          </button>
         </div>
       </div>
     );
   }
 
-  const isAdmin = !!adminCode;
+  if (results.error) {
+    toast.error(results.error);
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{results.error}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto w-full">
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              ← Back
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{results.title}</h1>
-              {results.description && (
-                <p className="text-gray-600 mt-1">{results.description}</p>
-              )}
-            </div>
-          </div>
+    <div className="space-y-8">
+      {results.questions.map((question, questionIndex) => (
+        <div key={question._id} className="border-b border-gray-100 pb-6 last:border-b-0">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {questionIndex + 1}. {question.text}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Total votes: {question.totalVotes}
+          </p>
 
-          {isAdmin && (
-            <button
-              onClick={async () => {
-                if (!results) return;
-                const next = !results.resultsVisible;
-                try {
-                  const newState = await setResultsVisible({ pollId, adminCode, resultsVisible: next });
-                  toast.success(newState ? "Results are now public" : "Results are now private");
-                } catch (error) {
-                  toast.error("Failed to update results visibility");
-                }
-              }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${results.resultsVisible
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
-                }`}
-            >
-              {results.resultsVisible ? "Hide Results" : "Show Results"}
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-8">
-          {results.questions.map((question, questionIndex) => (
-            <div key={question._id} className="border-b border-gray-100 pb-6 last:border-b-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {questionIndex + 1}. {question.text}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Total votes: {question.totalVotes}
-              </p>
-
-              <div className="space-y-3">
-                {question.choices.map((choice) => (
-                  <div key={choice._id} className="relative">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-gray-700 font-medium">{choice.text}</span>
-                      <span className="text-sm text-gray-500">
-                        {choice.voteCount} votes ({choice.percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-primary h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${choice.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          <div className="space-y-3">
+            {question.choices.map((choice) => (
+              <div key={choice._id} className="relative">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-gray-700 font-medium">{choice.text}</span>
+                  <span className="text-sm text-gray-500">
+                    {choice.voteCount} votes ({choice.percentage}%)
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className="bg-primary h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${choice.percentage}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Results {results.resultsVisible ? "are public" : "are private"}
-            </p>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${results.resultsVisible ? "bg-green-500" : "bg-gray-400"}`} />
-              <span className="text-sm text-gray-600">
-                {results.resultsVisible ? "Public" : "Private"}
-              </span>
-            </div>
+            ))}
           </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }

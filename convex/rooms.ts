@@ -1,44 +1,27 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAdmin } from "./utils";
 
 export const doAuth = query({
-  args: { code: v.string() },
+  args: { authCode: v.string(), roomCode: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.code))
-      .unique();
+    const user = await requireAdmin(ctx, args.authCode);
 
-    if (user) {
-      const room = await ctx.db
-        .query("rooms")
-        .withIndex("by_code", (q) => q.eq("code", user.roomCode))
-        .unique();
+    const roomCode = user ? args.roomCode : args.authCode;
 
-      if (!room) {
-        return {
-          "error": "Invalid room code associated with admin code"
-        }
-      }
-
-      return {
-        adminCode: user.adminCode,
-        room: room,
-      };
-    }
-
-    const room = await ctx.db
+    const room = roomCode ? await ctx.db
       .query("rooms")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .unique();
-    if (!room) {
+      .withIndex("by_code", (q) => q.eq("code", roomCode))
+      .unique() : null;
+
+    if (!user && !room) {
       return {
-        "error": "Invalid room code"
-      }
+        error: `Invalid room code. Is admin: ${!!user}. Room code: ${roomCode}`,
+      } as const;
     }
 
     return {
-      adminCode: null,
+      adminCode: user?.adminCode,
       room,
     };
   },
@@ -55,9 +38,16 @@ export const generateRandomCode = (length: number = 6) => {
 
 export const createRoom = mutation({
   args: {
-    name: v.string()
+    name: v.string(),
+    adminCode: v.string(),
   },
   handler: async (ctx, args) => {
+    // Verify admin code
+    const user = await requireAdmin(ctx, args.adminCode);
+    if (!user) {
+      return { error: "Invalid admin code" } as const;
+    }
+
     const roomCode = generateRandomCode();
     const adminCode = generateRandomCode();
 
@@ -74,5 +64,27 @@ export const createRoom = mutation({
     });
 
     return { roomId, roomCode, adminCode };
+  },
+});
+
+export const listRooms = query({
+  args: {
+    adminCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify admin code
+    const user = await requireAdmin(ctx, args.adminCode);
+
+    if (!user) {
+      return {
+        error: "Invalid admin code",
+      } as const;
+    }
+
+    // List all rooms ordered by newest first
+    const rooms = await ctx.db.query("rooms").order("desc").collect();
+    return {
+      rooms,
+    };
   },
 });

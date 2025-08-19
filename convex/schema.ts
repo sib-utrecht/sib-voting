@@ -9,8 +9,8 @@ const applicationTables = {
 
   users: defineTable({
     adminCode: v.string(),
-    roomCode: v.string(),
-  }).index("by_admin_code", ["adminCode"]).index("by_room", ["roomCode"]),
+    roomCode: v.optional(v.string()),
+  }).index("by_admin_code", ["adminCode"]),
 
   polls: defineTable({
     title: v.string(),
@@ -19,6 +19,7 @@ const applicationTables = {
     isActive: v.boolean(),
     isVisible: v.boolean(),
     resultsVisible: v.boolean(),
+    sortDate: v.optional(v.number()),
   }).index("by_room", ["roomCode"]),
 
   questions: defineTable({

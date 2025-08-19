@@ -1,6 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { generateRandomCode } from "./rooms";
+import { requireAdmin, getPoll } from "./utils";
+
+// Shared helpers to avoid repeating admin & poll verification
 
 export const list = query({
   args: { roomCode: v.string() },
@@ -10,10 +13,52 @@ export const list = query({
       .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
       .filter((q) => q.eq(q.field("isVisible"), true))
       .collect();
-    
-    return polls;
+
+    return polls.sort((a, b) => {
+      const aKey = (a.sortDate ?? a._creationTime);
+      const bKey = (b.sortDate ?? b._creationTime);
+      return bKey - aKey;
+    });
   },
 });
+
+
+export const listAll = query({
+  args: { roomCode: v.string() },
+  handler: async (ctx, args) => {
+    const polls = await ctx.db
+      .query("polls")
+      .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
+      .collect();
+
+    const augmented = await Promise.all(
+      polls.map(async (poll) => {
+        const totalVotes = await ctx.db
+          .query("votes")
+          .withIndex("by_poll_voter", (q) => q.eq("pollId", poll._id))
+          .collect();
+
+        // Count unique voters
+        const uniqueVoters = new Set(totalVotes.map(vote => vote.voterCode));
+
+        return {
+          ...poll,
+          voterCount: uniqueVoters.size,
+        };
+      })
+    );
+
+    // Sort by sortDate (desc) falling back to _creationTime (desc)
+    augmented.sort((a, b) => {
+      const aKey = (a.sortDate ?? a._creationTime);
+      const bKey = (b.sortDate ?? b._creationTime);
+      return bKey - aKey;
+    });
+
+    return augmented;
+  },
+});
+
 
 export const get = query({
   args: { pollId: v.id("polls") },
@@ -64,19 +109,8 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // Verify admin code
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
-      .unique();
-    
-    if (!user) {
-      throw new Error("Invalid admin code");
-    }
-
-    // Verify the room code matches the admin's room
-    if (user.roomCode !== args.roomCode) {
-      throw new Error("Room is not owned by admin");
-    }
+    const user = await requireAdmin(ctx, args.adminCode);
+    if (!user) return { error: "Invalid admin code" } as const;
 
     const pollId = await ctx.db.insert("polls", {
       title: args.title,
@@ -85,6 +119,7 @@ export const create = mutation({
       isActive: true,
       isVisible: true,
       resultsVisible: false,
+      sortDate: Date.now(),
     });
 
     for (let i = 0; i < args.questions.length; i++) {
@@ -104,7 +139,7 @@ export const create = mutation({
       }
     }
 
-    return pollId;
+    return { pollId };
   },
 });
 
@@ -140,7 +175,7 @@ export const hasVoted = query({
   handler: async (ctx, args) => {
     const votes = await ctx.db
       .query("votes")
-      .withIndex("by_poll_voter", (q) => 
+      .withIndex("by_poll_voter", (q) =>
         q.eq("pollId", args.pollId).eq("voterCode", args.voterCode)
       )
       .collect();
@@ -150,13 +185,13 @@ export const hasVoted = query({
 });
 
 export const getResults = query({
-  args: { pollId: v.id("polls"), adminCode : v.optional(v.string()) },
+  args: { pollId: v.id("polls"), adminCode: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const poll = await ctx.db.get(args.pollId);
-    if (!poll) return null;
+    if (!poll) return { error: "Poll not found" } as const;
 
     // Check if user has voted directly
-    
+
     // Check if this is an admin code
     const adminCode = args.adminCode;
     const adminUser = adminCode ? await ctx.db
@@ -164,9 +199,9 @@ export const getResults = query({
       .withIndex("by_admin_code", (q) => q.eq("adminCode", adminCode))
       .unique() : null;
     const isAdmin = !!adminUser;
-    
+
     if (!isAdmin && !poll.resultsVisible) {
-      return null;
+      return { error: "Results are not visible" } as const;
     }
 
     const questions = await ctx.db
@@ -225,25 +260,19 @@ export const setResultsVisible = mutation({
   args: { pollId: v.id("polls"), adminCode: v.string(), resultsVisible: v.boolean() },
   handler: async (ctx, args) => {
     // Check if this is a valid admin code
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
-      .unique();
-    
-    if (!user) {
-      throw new Error("Invalid admin code");
-    }
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
 
-    const poll = await ctx.db.get(args.pollId);
-    if (!poll) {
-      throw new Error("Poll not found");
-    }
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    const resultsVisible = args.resultsVisible;
 
     await ctx.db.patch(args.pollId, {
-      resultsVisible: args.resultsVisible,
+      resultsVisible,
     });
 
-    return args.resultsVisible;
+    return { resultsVisible };
   },
 });
 
@@ -251,25 +280,19 @@ export const setVisible = mutation({
   args: { pollId: v.id("polls"), adminCode: v.string(), isVisible: v.boolean() },
   handler: async (ctx, args) => {
     // Verify admin code
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
-      .unique();
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
 
-    if (!user) {
-      throw new Error("Invalid admin code");
-    }
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
 
-    const poll = await ctx.db.get(args.pollId);
-    if (!poll) {
-      throw new Error("Poll not found");
-    }
+    const isVisible = args.isVisible;
 
     await ctx.db.patch(args.pollId, {
-      isVisible: args.isVisible,
+      isVisible,
     });
 
-    return args.isVisible;
+    return { isVisible };
   },
 });
 
@@ -277,25 +300,34 @@ export const setActive = mutation({
   args: { pollId: v.id("polls"), adminCode: v.string(), isActive: v.boolean() },
   handler: async (ctx, args) => {
     // Verify admin code
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
-      .unique();
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
 
-    if (!user) {
-      throw new Error("Invalid admin code");
-    }
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
 
-    const poll = await ctx.db.get(args.pollId);
-    if (!poll) {
-      throw new Error("Poll not found");
-    }
+    const isActive = args.isActive;
 
     await ctx.db.patch(args.pollId, {
-      isActive: args.isActive,
+      isActive,
     });
 
-    return args.isActive;
+    return { isActive };
+  },
+});
+
+export const moveToTop = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
+
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    const sortDate = Date.now();
+    await ctx.db.patch(args.pollId, { sortDate });
+    return { sortDate } as const;
   },
 });
 
@@ -303,18 +335,11 @@ export const votesTable = query({
   args: { pollId: v.id("polls"), adminCode: v.string() },
   handler: async (ctx, args) => {
     // Admin verification
-    const admin = await ctx.db
-      .query("users")
-      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
-      .unique();
-    if (!admin) {
-      throw new Error("Invalid admin code");
-    }
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
 
-    const poll = await ctx.db.get(args.pollId);
-    if (!poll) {
-      throw new Error("Poll not found");
-    }
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
 
     // Load questions and choices
     const questions = await ctx.db
@@ -372,32 +397,5 @@ export const votesTable = query({
       questions: orderedQuestions.map((q) => ({ _id: q._id, text: q.text })),
       rows,
     };
-  },
-});
-
-export const listAll = query({
-  args: { roomCode: v.string() },
-  handler: async (ctx, args) => {
-    const polls = await ctx.db
-      .query("polls")
-      .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
-      .collect();
-
-    return Promise.all(
-      polls.map(async (poll) => {
-        const totalVotes = await ctx.db
-          .query("votes")
-          .withIndex("by_poll_voter", (q) => q.eq("pollId", poll._id))
-          .collect();
-
-        // Count unique voters
-        const uniqueVoters = new Set(totalVotes.map(vote => vote.voterCode));
-
-        return {
-          ...poll,
-          voterCount: uniqueVoters.size,
-        };
-      })
-    );
   },
 });

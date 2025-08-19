@@ -90,15 +90,15 @@ export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormPr
     };
 
     setIsSubmitting(true);
-    try {
-      await createPoll(pollData);
+      const {pollId, error} = await createPoll(pollData);
+      if (error) {
+        toast.error(`Failed to create poll: ${error}`);
+        setIsSubmitting(false);
+        return;
+      }
+
       toast.success("Poll created successfully!");
       onBack();
-    } catch (error) {
-      toast.error("Failed to create poll");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (

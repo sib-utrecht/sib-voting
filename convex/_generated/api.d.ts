@@ -18,6 +18,7 @@ import type * as migrations from "../migrations.js";
 import type * as polls from "../polls.js";
 import type * as rooms from "../rooms.js";
 import type * as router from "../router.js";
+import type * as utils from "../utils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   polls: typeof polls;
   rooms: typeof rooms;
   router: typeof router;
+  utils: typeof utils;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

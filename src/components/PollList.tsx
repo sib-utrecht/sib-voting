@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { PollCard } from "./PollCard";
+import { Poll, PollCard } from "./PollCard";
+import { Id } from "../../convex/_generated/dataModel";
+import { PollDetail } from "./PollDetail";
 
 interface PollListProps {
   roomCode: string;
@@ -9,6 +11,7 @@ interface PollListProps {
 
 export function PollList({ roomCode }: PollListProps) {
   const polls = useQuery(api.polls.list, { roomCode });
+  const [votingPollId, setVotingPollId] = useState<Id<"polls"> | undefined>(undefined);
   const [showInactive, setShowInactive] = useState(false);
 
   if (polls === undefined) {
@@ -29,6 +32,11 @@ export function PollList({ roomCode }: PollListProps) {
     );
   }
 
+  const votingPoll = polls.find((poll) => poll._id === votingPollId);
+  if (votingPoll && votingPoll.isActive) {
+    return <PollDetail pollId={votingPoll._id} roomCode={roomCode} onBack={() => setVotingPollId(undefined)} />;
+  }
+
   const activePolls = polls.filter((poll) => poll.isActive);
   const inactivePolls = polls.filter((poll) => !poll.isActive);
 
@@ -37,7 +45,7 @@ export function PollList({ roomCode }: PollListProps) {
       {activePolls.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {activePolls.map((poll) => (
-            <PollCard key={poll._id} poll={poll} roomCode={roomCode} />
+            <PollCard key={poll._id} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
           ))}
         </div>
       ) : (
@@ -76,7 +84,7 @@ export function PollList({ roomCode }: PollListProps) {
           {showInactive && (
             <div className="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {inactivePolls.map((poll) => (
-                <PollCard key={poll._id} poll={poll} roomCode={roomCode} />
+                <PollCard key={poll._id} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
               ))}
             </div>
           )}
