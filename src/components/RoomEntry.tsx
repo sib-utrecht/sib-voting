@@ -11,7 +11,6 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
   const [code, setCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
-  const [newRoomType, setNewRoomType] = useState<"user" | "admin">("user");
   const createRoom = useMutation(api.rooms.createRoom);
 
   const handleJoinRoom = () => {
@@ -22,36 +21,22 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
     }
   };
 
-  const generateRandomCode = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let result = "";
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   const handleCreateRoom = async () => {
     if (!newRoomName.trim()) {
       toast.error("Please enter a room name");
       return;
     }
-
-    const newCode = generateRandomCode();
     
     try {
-      await createRoom({
-        code: newCode,
-        type: newRoomType,
+      const result = await createRoom({
         name: newRoomName.trim(),
       });
       
-      toast.success(`Room created! Code: ${newCode}`);
-      onRoomEnter(newCode);
+      toast.success(`Room created! Room Code: ${result.roomCode}, Admin Code: ${result.adminCode}`);
+      onRoomEnter(result.adminCode);
     } catch (error) {
-      if (error instanceof Error && error.message.includes("already exists")) {
-        // Try again with a new code
-        handleCreateRoom();
+      if (error instanceof Error) {
+        toast.error(error.message);
       } else {
         toast.error("Failed to create room");
       }
@@ -61,7 +46,7 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
   if (isCreating) {
     return (
       <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-8">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-primary mb-2">Create Room</h1>
             <p className="text-gray-600">Set up a new voting room</p>
@@ -76,46 +61,11 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
                 type="text"
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-shadow"
                 placeholder="Enter room name..."
                 maxLength={50}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Room Type
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="roomType"
-                    value="user"
-                    checked={newRoomType === "user"}
-                    onChange={(e) => setNewRoomType(e.target.value as "user")}
-                    className="mr-3 text-primary focus:ring-primary"
-                  />
-                  <div>
-                    <span className="font-medium">User Room</span>
-                    <p className="text-sm text-gray-500">Can vote on polls and view results</p>
-                  </div>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="roomType"
-                    value="admin"
-                    checked={newRoomType === "admin"}
-                    onChange={(e) => setNewRoomType(e.target.value as "admin")}
-                    className="mr-3 text-primary focus:ring-primary"
-                  />
-                  <div>
-                    <span className="font-medium">Admin Room</span>
-                    <p className="text-sm text-gray-500">Can create polls and manage results</p>
-                  </div>
-                </label>
-              </div>
+              <p className="text-sm text-gray-500 mt-1">Room and admin codes will be generated automatically</p>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -140,7 +90,7 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
 
   return (
     <div className="max-w-md mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+      <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-primary mb-2">Enter Room</h1>
           <p className="text-gray-600">Join a voting room with a 6-character code</p>
@@ -155,7 +105,7 @@ export function RoomEntry({ onRoomEnter }: RoomEntryProps) {
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-mono text-center text-lg tracking-widest"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-shadow font-mono text-center text-lg tracking-widest"
               placeholder="ABC123"
               maxLength={6}
               onKeyPress={(e) => {

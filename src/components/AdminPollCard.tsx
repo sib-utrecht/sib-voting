@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { PollResults } from "./PollResults";
+import { dateFormat } from "../lib/locale";
 
 interface AdminPoll {
   _id: Id<"polls">;
@@ -15,17 +16,18 @@ interface AdminPoll {
 interface AdminPollCardProps {
   poll: AdminPoll;
   roomCode: string;
+  adminCode: string;
 }
 
-export function AdminPollCard({ poll, roomCode }: AdminPollCardProps) {
+export function AdminPollCard({ poll, roomCode, adminCode }: AdminPollCardProps) {
   const [showResults, setShowResults] = useState(false);
 
   if (showResults) {
-    return <PollResults pollId={poll._id} roomCode={roomCode} onBack={() => setShowResults(false)} />;
+    return <PollResults pollId={poll._id} adminCode={adminCode} onBack={() => setShowResults(false)} />;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow">
       <div className="flex flex-col h-full">
         <div className="flex-1">
           <div className="flex items-start justify-between mb-3">
@@ -58,7 +60,7 @@ export function AdminPollCard({ poll, roomCode }: AdminPollCardProps) {
         
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-sm text-gray-500">
-            <p>{new Date(poll._creationTime).toLocaleDateString()}</p>
+            <p>{dateFormat.format(new Date(poll._creationTime))}</p>
           </div>
           <button
             onClick={() => setShowResults(true)}

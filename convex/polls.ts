@@ -53,6 +53,7 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     roomCode: v.string(),
+    adminCode: v.string(),
     questions: v.array(
       v.object({
         text: v.string(),
@@ -61,6 +62,21 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    // Verify admin code
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
+      .unique();
+    
+    if (!user) {
+      throw new Error("Invalid admin code");
+    }
+
+    // Verify the room code matches the admin's room
+    if (user.roomCode !== args.roomCode) {
+      throw new Error("Room is not owned by admin");
+    }
+
     const pollId = await ctx.db.insert("polls", {
       title: args.title,
       description: args.description,
@@ -93,7 +109,7 @@ export const create = mutation({
 export const vote = mutation({
   args: {
     pollId: v.id("polls"),
-    voterCode: v.string(),
+    voterCode: v.optional(v.string()),
     votes: v.array(
       v.object({
         questionId: v.id("questions"),
@@ -103,16 +119,16 @@ export const vote = mutation({
   },
   handler: async (ctx, args) => {
     // Check if user has already voted on this poll
-    const existingVotes = await ctx.db
-      .query("votes")
-      .withIndex("by_poll_voter", (q) => 
-        q.eq("pollId", args.pollId).eq("voterCode", args.voterCode)
-      )
-      .collect();
+    // const existingVotes = await ctx.db
+    //   .query("votes")
+    //   .withIndex("by_poll_voter", (q) => 
+    //     q.eq("pollId", args.pollId).eq("voterCode", args.voterCode)
+    //   )
+    //   .collect();
 
-    if (existingVotes.length > 0) {
-      throw new Error("You have already voted on this poll");
-    }
+    // if (existingVotes.length > 0) {
+    //   throw new Error("You have already voted on this poll");
+    // }
 
     // Submit all votes
     for (const vote of args.votes) {
@@ -143,28 +159,22 @@ export const hasVoted = query({
 });
 
 export const getResults = query({
-  args: { pollId: v.id("polls"), voterCode: v.string() },
+  args: { pollId: v.id("polls"), adminCode : v.optional(v.string()) },
   handler: async (ctx, args) => {
     const poll = await ctx.db.get(args.pollId);
     if (!poll) return null;
 
     // Check if user has voted directly
-    const userVotes = await ctx.db
-      .query("votes")
-      .withIndex("by_poll_voter", (q) => 
-        q.eq("pollId", args.pollId).eq("voterCode", args.voterCode)
-      )
-      .collect();
-    const hasUserVoted = userVotes.length > 0;
     
-    // Check if this is an admin room code
-    const room = await ctx.db
-      .query("rooms")
-      .withIndex("by_code", (q) => q.eq("code", args.voterCode))
-      .unique();
-    const isAdmin = room?.type === "admin";
+    // Check if this is an admin code
+    const adminCode = args.adminCode;
+    const adminUser = adminCode ? await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", adminCode))
+      .unique() : null;
+    const isAdmin = !!adminUser;
     
-    if (!isAdmin && !poll.resultsVisible && !hasUserVoted) {
+    if (!isAdmin && !poll.resultsVisible) {
       return null;
     }
 
@@ -215,22 +225,22 @@ export const getResults = query({
       ...poll,
       questions: results,
       isAdmin,
-      canViewResults: isAdmin || poll.resultsVisible || hasUserVoted,
+      canViewResults: isAdmin || poll.resultsVisible,
     };
   },
 });
 
 export const toggleResults = mutation({
-  args: { pollId: v.id("polls"), roomCode: v.string() },
+  args: { pollId: v.id("polls"), adminCode: v.string() },
   handler: async (ctx, args) => {
-    // Check if this is an admin room code
-    const room = await ctx.db
-      .query("rooms")
-      .withIndex("by_code", (q) => q.eq("code", args.roomCode))
+    // Check if this is a valid admin code
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_admin_code", (q) => q.eq("adminCode", args.adminCode))
       .unique();
     
-    if (!room || room.type !== "admin") {
-      throw new Error("Only admin can toggle results visibility");
+    if (!user) {
+      throw new Error("Invalid admin code");
     }
 
     const poll = await ctx.db.get(args.pollId);

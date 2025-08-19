@@ -3,13 +3,17 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { CreatePollForm } from "./CreatePollForm";
 import { AdminPollCard } from "./AdminPollCard";
+import { Room } from "@/types/room";
 
 interface AdminDashboardProps {
-  roomCode: string;
+  room: Room;
+  adminCode: string;
 }
 
-export function AdminDashboard({ roomCode }: AdminDashboardProps) {
+export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const roomCode = room.code;
+
   const myPolls = useQuery(api.polls.myPolls, { roomCode });
 
   if (myPolls === undefined) {
@@ -21,7 +25,7 @@ export function AdminDashboard({ roomCode }: AdminDashboardProps) {
   }
 
   if (showCreateForm) {
-    return <CreatePollForm roomCode={roomCode} onBack={() => setShowCreateForm(false)} />;
+    return <CreatePollForm roomCode={roomCode} adminCode={adminCode} onBack={() => setShowCreateForm(false)} />;
   }
 
   return (
@@ -49,9 +53,9 @@ export function AdminDashboard({ roomCode }: AdminDashboardProps) {
           </button>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {myPolls.map((poll) => (
-            <AdminPollCard key={poll._id} poll={poll} roomCode={roomCode} />
+            <AdminPollCard key={poll._id} poll={poll} adminCode={adminCode} roomCode={roomCode} />
           ))}
         </div>
       )}

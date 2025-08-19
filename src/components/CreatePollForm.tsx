@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 interface CreatePollFormProps {
   roomCode: string;
+  adminCode: string;
   onBack: () => void;
 }
 
@@ -13,7 +14,7 @@ interface Question {
   choices: string[];
 }
 
-export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
+export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([
@@ -79,6 +80,7 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
       title: title.trim(),
       description: description.trim() || undefined,
       roomCode,
+      adminCode,
       questions: validQuestions.map(q => ({
         text: q.text.trim(),
         choices: q.choices.filter(c => c.trim()).map(c => c.trim())
@@ -98,8 +100,8 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="mx-auto w-full max-w-2xl">
+      <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={onBack}
@@ -119,7 +121,7 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-shadow"
               placeholder="Enter your poll title..."
               required
             />
@@ -132,7 +134,7 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-shadow"
               placeholder="Describe your poll..."
               rows={3}
             />
@@ -170,7 +172,7 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
                     type="text"
                     value={question.text}
                     onChange={(e) => updateQuestion(questionIndex, e.target.value)}
-                    className="w-full px-3 py-2 rounded border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    className="w-full px-3 py-2 rounded border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
                     placeholder="Enter your question..."
                     required
                   />
@@ -193,7 +195,7 @@ export function CreatePollForm({ roomCode, onBack }: CreatePollFormProps) {
                           type="text"
                           value={choice}
                           onChange={(e) => updateChoice(questionIndex, choiceIndex, e.target.value)}
-                          className="flex-1 px-3 py-2 rounded border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                          className="flex-1 px-3 py-2 rounded border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
                           placeholder={`Choice ${choiceIndex + 1}...`}
                           required
                         />

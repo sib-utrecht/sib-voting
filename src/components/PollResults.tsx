@@ -5,12 +5,12 @@ import { toast } from "sonner";
 
 interface PollResultsProps {
   pollId: Id<"polls">;
-  roomCode: string;
+  adminCode?: string;
   onBack: () => void;
 }
 
-export function PollResults({ pollId, roomCode, onBack }: PollResultsProps) {
-  const results = useQuery(api.polls.getResults, { pollId, voterCode: roomCode });
+export function PollResults({ pollId, adminCode, onBack }: PollResultsProps) {
+  const results = useQuery(api.polls.getResults, { pollId, adminCode });
   const toggleResults = useMutation(api.polls.toggleResults);
 
   if (results === undefined) {
@@ -24,7 +24,7 @@ export function PollResults({ pollId, roomCode, onBack }: PollResultsProps) {
   if (!results) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 text-center">
           <div className="text-6xl mb-4">🔒</div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Results Not Available</h3>
           <p className="text-gray-500 mb-6">
@@ -41,18 +41,11 @@ export function PollResults({ pollId, roomCode, onBack }: PollResultsProps) {
     );
   }
 
-  const handleToggleResults = async () => {
-    try {
-      const newState = await toggleResults({ pollId, roomCode });
-      toast.success(newState ? "Results are now public" : "Results are now private");
-    } catch (error) {
-      toast.error("Failed to toggle results visibility");
-    }
-  };
+  const isAdmin = !!adminCode;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="max-w-2xl mx-auto w-full">
+      <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <button
@@ -68,15 +61,21 @@ export function PollResults({ pollId, roomCode, onBack }: PollResultsProps) {
               )}
             </div>
           </div>
-          
-          {results.isAdmin && (
+
+          {isAdmin && (
             <button
-              onClick={handleToggleResults}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                results.resultsVisible
+              onClick={async () => {
+                try {
+                  const newState = await toggleResults({ pollId, adminCode });
+                  toast.success(newState ? "Results are now public" : "Results are now private");
+                } catch (error) {
+                  toast.error("Failed to toggle results visibility");
+                }
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${results.resultsVisible
                   ? "bg-red-100 text-red-700 hover:bg-red-200"
                   : "bg-green-100 text-green-700 hover:bg-green-200"
-              }`}
+                }`}
             >
               {results.resultsVisible ? "Hide Results" : "Show Results"}
             </button>
@@ -92,7 +91,7 @@ export function PollResults({ pollId, roomCode, onBack }: PollResultsProps) {
               <p className="text-sm text-gray-500 mb-4">
                 Total votes: {question.totalVotes}
               </p>
-              
+
               <div className="space-y-3">
                 {question.choices.map((choice) => (
                   <div key={choice._id} className="relative">

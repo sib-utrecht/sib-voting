@@ -4,9 +4,13 @@ import { v } from "convex/values";
 const applicationTables = {
   rooms: defineTable({
     code: v.string(),
-    type: v.union(v.literal("user"), v.literal("admin")),
     name: v.string(),
   }).index("by_code", ["code"]),
+
+  users: defineTable({
+    adminCode: v.string(),
+    roomCode: v.string(),
+  }).index("by_admin_code", ["adminCode"]).index("by_room", ["roomCode"]),
 
   polls: defineTable({
     title: v.string(),
@@ -32,7 +36,7 @@ const applicationTables = {
     pollId: v.id("polls"),
     questionId: v.id("questions"),
     choiceId: v.id("choices"),
-    voterCode: v.string(),
+    voterCode: v.optional(v.string()),
   })
     .index("by_poll_voter", ["pollId", "voterCode"])
     .index("by_question", ["questionId"])

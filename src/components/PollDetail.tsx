@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { PollResults } from "./PollResults";
+import { dateFormat } from "../lib/locale";
 
 interface PollDetailProps {
   pollId: Id<"polls">;
@@ -13,13 +14,12 @@ interface PollDetailProps {
 
 export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
   const poll = useQuery(api.polls.get, { pollId });
-  const hasVoted = useQuery(api.polls.hasVoted, { pollId, voterCode: roomCode });
   const vote = useMutation(api.polls.vote);
   const [selectedChoices, setSelectedChoices] = useState<Record<string, Id<"choices">>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  if (poll === undefined || hasVoted === undefined) {
+  if (poll === undefined) {
     return (
       <div className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -41,8 +41,8 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
     );
   }
 
-  if (showResults || hasVoted) {
-    return <PollResults pollId={pollId} roomCode={roomCode} onBack={onBack} />;
+  if (showResults) {
+    return <PollResults pollId={pollId} onBack={onBack} />;
   }
 
   const handleChoiceSelect = (questionId: Id<"questions">, choiceId: Id<"choices">) => {
@@ -66,9 +66,9 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
 
     setIsSubmitting(true);
     try {
-      await vote({ pollId, voterCode: roomCode, votes });
+      await vote({ pollId,  votes });
       toast.success("Your vote has been submitted!");
-      setShowResults(true);
+      onBack();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to submit vote");
     } finally {
@@ -77,8 +77,8 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="max-w-2xl mx-auto w-2xl">
+      <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={onBack}
@@ -112,7 +112,7 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
                       value={choice._id}
                       checked={selectedChoices[question._id] === choice._id}
                       onChange={() => handleChoiceSelect(question._id, choice._id)}
-                      className="mr-3 text-primary focus:ring-primary"
+                      className="mr-3 text-primary focus:ring-1 focus:ring-primary"
                     />
                     <span className="text-gray-700">{choice.text}</span>
                   </label>
@@ -124,7 +124,7 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
 
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-500">
-            Created on {new Date(poll._creationTime).toLocaleDateString()}
+            Created on {dateFormat.format(new Date(poll._creationTime))}
           </p>
           <button
             onClick={handleSubmit}
