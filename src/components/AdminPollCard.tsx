@@ -87,7 +87,7 @@ export function AdminPollCard({ poll, roomCode, adminCode }: AdminPollCardProps)
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow ${isActiveLocal ? "ring-2 ring-blue-500" : ""}`}>
+    <div className={`bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow ${isActiveLocal && isVisibleLocal ? "ring-2 ring-blue-500" : ""}`}>
       <div className="flex flex-col h-full">
         <div className="flex-1">
           <div className="flex items-start justify-between mb-3">
