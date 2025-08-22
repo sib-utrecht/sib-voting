@@ -5,6 +5,7 @@ import { CreatePollForm } from "./CreatePollForm";
 import { AdminPollCard } from "./AdminPollCard";
 import { Room } from "@/types/room";
 import { useNavigate } from "react-router-dom";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface AdminDashboardProps {
   room: Room;
@@ -13,6 +14,7 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPollId, setEditingPollId] = useState<Id<"polls"> | null>(null);
   const roomCode = room.code;
   const navigate = useNavigate();
 
@@ -29,6 +31,17 @@ export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
 
   if (showCreateForm) {
     return <CreatePollForm roomCode={roomCode} adminCode={adminCode} onBack={() => setShowCreateForm(false)} />;
+  }
+
+  if (editingPollId) {
+    return (
+      <CreatePollForm
+        roomCode={roomCode}
+        adminCode={adminCode}
+        pollId={editingPollId}
+        onBack={() => setEditingPollId(null)}
+      />
+    );
   }
 
   return (
@@ -67,7 +80,7 @@ export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
       ) : (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           {myPolls.map((poll) => (
-            <AdminPollCard key={poll._id} poll={poll} adminCode={adminCode} roomCode={roomCode} />
+            <AdminPollCard key={poll._id} poll={poll} adminCode={adminCode} roomCode={roomCode} onEdit={() => setEditingPollId(poll._id)} />
           ))}
         </div>
       )}

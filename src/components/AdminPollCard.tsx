@@ -22,9 +22,10 @@ interface AdminPollCardProps {
   poll: AdminPoll;
   roomCode: string;
   adminCode: string;
+  onEdit?: () => void;
 }
 
-export function AdminPollCard({ poll, roomCode, adminCode }: AdminPollCardProps) {
+export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCardProps) {
   const [showResults, setShowResults] = useState(false);
   const [showVotes, setShowVotes] = useState(false);
   const [isActiveLocal, setIsActiveLocal] = useState(poll.isActive);
@@ -90,9 +91,25 @@ export function AdminPollCard({ poll, roomCode, adminCode }: AdminPollCardProps)
     <div className={`bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow ${isActiveLocal && isVisibleLocal ? "ring-2 ring-blue-500" : ""}`}>
       <div className="flex flex-col h-full">
         <div className="flex-1">
-          <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-900">{poll.title}</h3>
+          <div className="flex flex-col items-start justify-between mb-3">
+            <h3 className="text-md font-semibold text-gray-900">{poll.title}</h3>
             <div className="flex items-center gap-2">
+              {/* Edit button */}
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="p-2 rounded-md transition-colors hover:bg-gray-100 text-gray-600"
+                  title="Edit poll"
+                  aria-label="Edit poll"
+                >
+                  {/* Pencil icon */}
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
+                </button>
+              )}
+
               {/* Visibility toggle */}
               <button
                 onClick={handleToggleVisible}
@@ -194,12 +211,22 @@ export function AdminPollCard({ poll, roomCode, adminCode }: AdminPollCardProps)
           <div className="text-sm text-gray-500">
             <p>{dateFormat.format(new Date(poll._creationTime))}</p>
           </div>
-          <button
-            onClick={() => setShowResults((v) => !v)}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
-          >
-            {showResults ? "Hide Results" : "Show Results"}
-          </button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Edit
+              </button>
+            )}
+            <button
+              onClick={() => setShowResults((v) => !v)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
+            >
+              {showResults ? "Hide Results" : "Show Results"}
+            </button>
+          </div>
         </div>
       </div>
 

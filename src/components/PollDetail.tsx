@@ -99,7 +99,7 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
             </svg>
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{poll.title}</h1>
+            <h1 className="text-lg font-bold text-gray-900">{poll.title}</h1>
             {poll.description && (
               <p className="text-gray-600 mt-1">{poll.description}</p>
             )}
@@ -109,7 +109,7 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
         <div className="space-y-8">
           {poll.questions.map((question, questionIndex) => (
             <div key={question._id} className="border-b border-gray-100 pb-6 last:border-b-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-md font-semibold text-gray-900 mb-4">
                 {questionIndex + 1}. {question.text}
               </h3>
               <div className="space-y-3">

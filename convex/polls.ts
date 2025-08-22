@@ -162,6 +162,143 @@ export const create = mutation({
   },
 });
 
+// Update an existing poll's metadata, questions and choices.
+export const update = mutation({
+  args: {
+    pollId: v.id("polls"),
+    adminCode: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    questions: v.array(
+      v.object({
+        id: v.optional(v.id("questions")),
+        text: v.string(),
+        choices: v.array(
+          v.object({
+            id: v.optional(v.id("choices")),
+            text: v.string(),
+          })
+        ),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
+
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    // Patch poll metadata
+    await ctx.db.patch(args.pollId, {
+      title: args.title,
+      description: args.description,
+    });
+
+    // Load existing questions and choices
+    const existingQuestions = await ctx.db
+      .query("questions")
+      .withIndex("by_poll", (q) => q.eq("pollId", args.pollId))
+      .collect();
+
+    const existingQuestionsById = new Map(existingQuestions.map((q) => [q._id, q]));
+
+    const incomingQuestionIds = new Set<string>();
+
+    // Update or insert questions and their choices
+    for (let qi = 0; qi < args.questions.length; qi++) {
+      const qInput = args.questions[qi];
+      let questionId = qInput.id ?? null;
+
+      if (questionId && !existingQuestionsById.has(questionId)) {
+        // Ignore unknown id by treating as new
+        questionId = null;
+      }
+
+      if (!questionId) {
+        // Create new question
+        const newQId = await ctx.db.insert("questions", {
+          pollId: args.pollId,
+          text: qInput.text,
+          order: qi,
+        });
+        questionId = newQId;
+      } else {
+        // Update existing question text/order
+        await ctx.db.patch(questionId, { text: qInput.text, order: qi });
+      }
+
+      incomingQuestionIds.add(questionId);
+
+      // Handle choices for this question
+      const existingChoices = await ctx.db
+        .query("choices")
+        .withIndex("by_question", (q) => q.eq("questionId", questionId!))
+        .collect();
+      const existingChoicesById = new Map(existingChoices.map((c) => [c._id, c]));
+      const incomingChoiceIds = new Set<string>();
+
+      for (let ci = 0; ci < qInput.choices.length; ci++) {
+        const cInput = qInput.choices[ci];
+        let choiceId = cInput.id ?? null;
+        if (choiceId && !existingChoicesById.has(choiceId)) {
+          choiceId = null;
+        }
+
+        if (!choiceId) {
+          const newCId = await ctx.db.insert("choices", {
+            questionId: questionId!,
+            text: cInput.text,
+            order: ci,
+          });
+          choiceId = newCId;
+        } else {
+          await ctx.db.patch(choiceId, { text: cInput.text, order: ci });
+        }
+        incomingChoiceIds.add(choiceId);
+      }
+
+      // Remove choices not present anymore (only if they have no votes)
+      for (const c of existingChoices) {
+        if (!incomingChoiceIds.has(c._id)) {
+          const votes = await ctx.db
+            .query("votes")
+            .withIndex("by_choice", (q) => q.eq("choiceId", c._id))
+            .collect();
+          if (votes.length > 0) {
+            return { error: `Cannot remove choice "${c.text}" because it already has votes` } as const;
+          }
+          await ctx.db.delete(c._id);
+        }
+      }
+    }
+
+    // Remove questions not present anymore (only if they have no votes)
+    for (const q of existingQuestions) {
+      if (!incomingQuestionIds.has(q._id)) {
+        const votesForQuestion = await ctx.db
+          .query("votes")
+          .withIndex("by_question", (qv) => qv.eq("questionId", q._id))
+          .collect();
+        if (votesForQuestion.length > 0) {
+          return { error: `Cannot remove question "${q.text}" because it already has votes` } as const;
+        }
+        // delete choices under this question first
+        const choices = await ctx.db
+          .query("choices")
+          .withIndex("by_question", (qch) => qch.eq("questionId", q._id))
+          .collect();
+        for (const c of choices) {
+          await ctx.db.delete(c._id);
+        }
+        await ctx.db.delete(q._id);
+      }
+    }
+
+    return { pollId: args.pollId } as const;
+  },
+});
+
 export const vote = mutation({
   args: {
     pollId: v.id("polls"),

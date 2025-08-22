@@ -42,7 +42,7 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
     >
       <div className="flex flex-col h-full">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{poll.title}</h3>
+          <h3 className="text-md font-semibold text-gray-900 mb-2">{poll.title}</h3>
           {poll.description && (
             <p className="text-gray-600 text-sm mb-4 line-clamp-3">{poll.description}</p>
           )}

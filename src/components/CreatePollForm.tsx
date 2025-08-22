@@ -1,32 +1,71 @@
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface CreatePollFormProps {
   roomCode: string;
   adminCode: string;
   onBack: () => void;
+  pollId?: Id<"polls">;
 }
 
-interface Question {
+interface EditableChoice {
+  id?: Id<"choices">;
   text: string;
-  choices: string[];
 }
 
-export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormProps) {
+interface EditableQuestion {
+  id?: Id<"questions">;
+  text: string;
+  choices: EditableChoice[];
+}
+
+export function CreatePollForm({ roomCode, adminCode, onBack, pollId }: CreatePollFormProps) {
+  const isEditMode = !!pollId;
+  const existing = useQuery(api.polls.get, pollId ? { pollId } : "skip");
+
+  const makeDefaultQuestion = () : EditableQuestion => ({
+    text: "I accept ",
+    choices: [
+      { text: "Pro" },
+      { text: "Against" },
+      { text: "Abstain" },
+    ],
+  });
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const defaultQuestion : Question = { text: "I accept ", choices: ["Pro", "Against", "Abstain"] };
-
-  const [questions, setQuestions] = useState<Question[]>([
-    defaultQuestion
-  ]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([makeDefaultQuestion()]);
+  const [initialized, setInitialized] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const createPoll = useMutation(api.polls.create);
+  const updatePoll = useMutation(api.polls.update);
+
+  useEffect(() => {
+    if (!isEditMode) return; // create mode
+    if (existing === undefined) return; // loading
+    if (existing === null) {
+      toast.error("Poll not found");
+      return;
+    }
+    if (!initialized && existing) {
+      setTitle(existing.title ?? "");
+      setDescription(existing.description ?? "");
+      const qns: EditableQuestion[] = existing.questions.map((q: any) => ({
+        id: q._id,
+        text: q.text,
+        choices: q.choices.map((c: any) => ({ id: c._id, text: c.text })),
+      }));
+      setQuestions(qns.length > 0 ? qns : [makeDefaultQuestion()]);
+      setInitialized(true);
+    }
+  }, [existing, isEditMode, initialized]);
 
   const addQuestion = () => {
-    setQuestions([...questions, defaultQuestion]);
+    setQuestions((prev) => [...prev, makeDefaultQuestion()]);
   };
 
   const removeQuestion = (index: number) => {
@@ -36,70 +75,130 @@ export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormPr
   };
 
   const updateQuestion = (index: number, text: string) => {
-    const updated = [...questions];
-    updated[index].text = text;
-    setQuestions(updated);
+    setQuestions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], text };
+      return updated;
+    });
   };
 
   const addChoice = (questionIndex: number) => {
-    const updated = [...questions];
-    updated[questionIndex].choices.push("");
-    setQuestions(updated);
+    setQuestions((prev) => {
+      const updated = [...prev];
+      updated[questionIndex] = {
+        ...updated[questionIndex],
+        choices: [...updated[questionIndex].choices, { text: "" }],
+      };
+      return updated;
+    });
   };
 
   const removeChoice = (questionIndex: number, choiceIndex: number) => {
-    const updated = [...questions];
-    if (updated[questionIndex].choices.length > 2) {
-      updated[questionIndex].choices.splice(choiceIndex, 1);
-      setQuestions(updated);
-    }
+    setQuestions((prev) => {
+      const updated = [...prev];
+      const q = updated[questionIndex];
+      if (q.choices.length > 2) {
+        const newChoices = q.choices.filter((_, i) => i !== choiceIndex);
+        updated[questionIndex] = { ...q, choices: newChoices };
+      }
+      return updated;
+    });
   };
 
   const updateChoice = (questionIndex: number, choiceIndex: number, text: string) => {
-    const updated = [...questions];
-    updated[questionIndex].choices[choiceIndex] = text;
-    setQuestions(updated);
+    setQuestions((prev) => {
+      const updated = [...prev];
+      const q = updated[questionIndex];
+      const newChoices = [...q.choices];
+      newChoices[choiceIndex] = { ...newChoices[choiceIndex], text };
+      updated[questionIndex] = { ...q, choices: newChoices };
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       toast.error("Please enter a poll title");
       return;
     }
 
-    const validQuestions = questions.filter(q => 
-      q.text.trim() && q.choices.filter(c => c.trim()).length >= 2
-    );
+    const validQuestions = questions
+      .map((q) => ({
+        ...q,
+        text: q.text.trim(),
+        choices: q.choices.map((c) => ({ ...c, text: c.text.trim() })),
+      }))
+      .filter((q) => q.text && q.choices.filter((c) => c.text).length >= 2)
+      .map((q) => ({
+        ...q,
+        choices: q.choices.filter((c) => c.text),
+      }));
 
     if (validQuestions.length === 0) {
       toast.error("Please add at least one question with two choices");
       return;
     }
 
-    const pollData = {
-      title: title.trim(),
-      description: description.trim() || undefined,
-      roomCode,
-      adminCode,
-      questions: validQuestions.map(q => ({
-        text: q.text.trim(),
-        choices: q.choices.filter(c => c.trim()).map(c => c.trim())
-      }))
-    };
-
     setIsSubmitting(true);
-      const {pollId, error} = await createPoll(pollData);
+
+    try {
+      if (isEditMode && pollId) {
+        const payload = {
+          pollId,
+          adminCode,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          questions: validQuestions.map((q) => ({
+            id: q.id,
+            text: q.text,
+            choices: q.choices.map((c) => ({ id: c.id, text: c.text })),
+          })),
+        };
+
+        const { pollId: updatedId, error } = await updatePoll(payload as any);
+        if (error) {
+          toast.error(`Failed to update poll: ${error}`);
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success("Poll updated successfully!");
+        onBack();
+        return;
+      }
+
+      // Create mode
+      const payload = {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        roomCode,
+        adminCode,
+        questions: validQuestions.map((q) => ({
+          text: q.text,
+          choices: q.choices.map((c) => c.text),
+        })),
+      };
+      const { pollId: newId, error } = await createPoll(payload as any);
       if (error) {
         toast.error(`Failed to create poll: ${error}`);
         setIsSubmitting(false);
         return;
       }
-
       toast.success("Poll created successfully!");
       onBack();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isEditMode && existing === undefined && !initialized) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl">
@@ -111,7 +210,7 @@ export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormPr
           >
             ← Back
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Poll</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? "Edit Poll" : "Create New Poll"}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -195,7 +294,7 @@ export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormPr
                       <div key={choiceIndex} className="flex items-center gap-2">
                         <input
                           type="text"
-                          value={choice}
+                          value={choice.text}
                           onChange={(e) => updateChoice(questionIndex, choiceIndex, e.target.value)}
                           className="flex-1 px-3 py-2 rounded border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden"
                           placeholder={`Choice ${choiceIndex + 1}...`}
@@ -231,7 +330,7 @@ export function CreatePollForm({ roomCode, adminCode, onBack }: CreatePollFormPr
               disabled={isSubmitting}
               className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Creating..." : "Create Poll"}
+              {isSubmitting ? (isEditMode ? "Saving..." : "Creating...") : (isEditMode ? "Save Changes" : "Create Poll")}
             </button>
           </div>
         </form>
