@@ -35,6 +35,7 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
   const setVisible = useMutation(api.polls.setVisible);
   const setResultsVisible = useMutation(api.polls.setResultsVisible);
   const moveToTop = useMutation(api.polls.moveToTop);
+  const exportCsv = useMutation(api.polls.exportCsv);
 
   const handleToggleActive = async () => {
     const next = !isActiveLocal;
@@ -85,6 +86,28 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
       return;
     }
     toast.success("Moved to top");
+  };
+
+  const handleDownload = async () => {
+    try {
+      const bytes = await exportCsv({ pollId: poll._id, adminCode } as any);
+      if (!bytes) {
+        toast.error("Failed to export CSV");
+        return;
+      }
+      const blob = new Blob([bytes as ArrayBuffer], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeTitle = poll.title.replace(/[^a-z0-9-_]+/gi, "_");
+      a.download = `${safeTitle || "poll"}-${new Date(poll._creationTime).toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to export CSV");
+    }
   };
 
   return (
@@ -192,6 +215,14 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
                 title="View individual votes"
               >
                 {poll.voterCount} votes
+              </button>
+              {/* Download CSV */}
+              <button
+                onClick={handleDownload}
+                className="ml-2 px-2 py-1 text-xs rounded-md font-medium border border-gray-200 hover:bg-gray-100 text-gray-700"
+                title="Download CSV"
+              >
+                Download
               </button>
             </div>
           </div>

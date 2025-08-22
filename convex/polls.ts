@@ -570,3 +570,86 @@ export const votesTable = query({
     };
   },
 });
+
+export const exportCsv = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
+
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    // Load ordered questions
+    const questions = await ctx.db
+      .query("questions")
+      .withIndex("by_poll", (q) => q.eq("pollId", args.pollId))
+      .collect();
+    const orderedQuestions = questions.sort((a, b) => a.order - b.order);
+
+    // Preload choice text
+    const choiceTextById = new Map<string, string>();
+    for (const qn of orderedQuestions) {
+      const choices = await ctx.db
+        .query("choices")
+        .withIndex("by_question", (q) => q.eq("questionId", qn._id))
+        .collect();
+      for (const ch of choices) {
+        choiceTextById.set(ch._id, ch.text);
+      }
+    }
+
+    // Load votes
+    const votes = await ctx.db
+      .query("votes")
+      .withIndex("by_poll_voter", (q) => q.eq("pollId", args.pollId))
+      .collect();
+
+    // Group by voter
+    const rowsMap = new Map<string, { voterCode: string | null; firstSeen: number; lastSeen: number; answers: Record<string, string>; }>();
+    const codeKey = (code: string | null | undefined) => (code ?? "");
+
+    for (const vDoc of votes) {
+      const key = codeKey(vDoc.voterCode);
+      if (!rowsMap.has(key)) {
+        rowsMap.set(key, {
+          voterCode: vDoc.voterCode ?? null,
+          firstSeen: vDoc._creationTime,
+          lastSeen: vDoc._creationTime,
+          answers: {},
+        });
+      }
+      const row = rowsMap.get(key)!;
+      const choiceText = choiceTextById.get(vDoc.choiceId) ?? "";
+      row.answers[vDoc.questionId] = choiceText;
+      if (vDoc._creationTime < row.firstSeen) row.firstSeen = vDoc._creationTime;
+      if (vDoc._creationTime > row.lastSeen) row.lastSeen = vDoc._creationTime;
+    }
+
+    const rows = Array.from(rowsMap.values()).sort((a, b) => a.lastSeen - b.lastSeen);
+
+    // Build CSV
+    const esc = (s: string) => {
+      const t = s.replace(/"/g, '""');
+      return /[",\n]/.test(t) ? `"${t}"` : t;
+    };
+
+    const header = ["#", "Time", "Voter", ...orderedQuestions.map((q) => q.text)];
+    const lines: string[] = [header.map(esc).join(",")];
+
+    rows.forEach((row, idx) => {
+      const cells: string[] = [];
+      cells.push(String(idx + 1));
+      cells.push(new Date(row.lastSeen).toISOString());
+      cells.push(row.voterCode ?? "");
+      for (const q of orderedQuestions) {
+        cells.push(row.answers[q._id] ?? "");
+      }
+      lines.push(cells.map(esc).join(","));
+    });
+
+    const csv = lines.join("\n");
+    const bytes = new TextEncoder().encode(csv);
+    return bytes.buffer;
+  },
+});
