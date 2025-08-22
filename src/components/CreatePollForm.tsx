@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
+import { BackButton } from "./BackButton";
 
 interface CreatePollFormProps {
   roomCode: string;
@@ -204,12 +205,7 @@ export function CreatePollForm({ roomCode, adminCode, onBack, pollId }: CreatePo
     <div className="mx-auto w-full max-w-2xl">
       <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
         <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={onBack}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            ← Back
-          </button>
+          <BackButton onBack={onBack} />
           <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? "Edit Poll" : "Create New Poll"}</h1>
         </div>
 
