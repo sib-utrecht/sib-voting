@@ -117,6 +117,41 @@ export function CreatePollForm({ roomCode, adminCode, onBack, pollId }: CreatePo
     });
   };
 
+  // Reordering helpers
+  function arrayMove<T>(arr: T[], from: number, to: number): T[] {
+    const copy = [...arr];
+    if (from === to || from < 0 || to < 0 || from >= copy.length || to >= copy.length) return copy;
+    const [item] = copy.splice(from, 1);
+    copy.splice(to, 0, item);
+    return copy;
+  }
+
+  const moveQuestionUp = (index: number) => {
+    setQuestions((prev) => (index > 0 ? arrayMove(prev, index, index - 1) : prev));
+  };
+
+  const moveQuestionDown = (index: number) => {
+    setQuestions((prev) => (index < prev.length - 1 ? arrayMove(prev, index, index + 1) : prev));
+  };
+
+  const moveChoiceUp = (questionIndex: number, choiceIndex: number) => {
+    setQuestions((prev) => {
+      const updated = [...prev];
+      const q = updated[questionIndex];
+      updated[questionIndex] = { ...q, choices: arrayMove(q.choices, choiceIndex, choiceIndex - 1) };
+      return updated;
+    });
+  };
+
+  const moveChoiceDown = (questionIndex: number, choiceIndex: number) => {
+    setQuestions((prev) => {
+      const updated = [...prev];
+      const q = updated[questionIndex];
+      updated[questionIndex] = { ...q, choices: arrayMove(q.choices, choiceIndex, choiceIndex + 1) };
+      return updated;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -253,15 +288,37 @@ export function CreatePollForm({ roomCode, adminCode, onBack, pollId }: CreatePo
               <div key={questionIndex} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-gray-900">Question {questionIndex + 1}</h4>
-                  {questions.length > 1 && (
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => removeQuestion(questionIndex)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
+                      onClick={() => moveQuestionUp(questionIndex)}
+                      disabled={questionIndex === 0}
+                      className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2"
+                      aria-label="Move question up"
+                      title="Move up"
                     >
-                      Remove
+                      ↑
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => moveQuestionDown(questionIndex)}
+                      disabled={questionIndex === questions.length - 1}
+                      className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2"
+                      aria-label="Move question down"
+                      title="Move down"
+                    >
+                      ↓
+                    </button>
+                    {questions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(questionIndex)}
+                        className="text-red-500 hover:text-red-700 transition-colors px-2"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -296,6 +353,26 @@ export function CreatePollForm({ roomCode, adminCode, onBack, pollId }: CreatePo
                           placeholder={`Choice ${choiceIndex + 1}...`}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => moveChoiceUp(questionIndex, choiceIndex)}
+                          disabled={choiceIndex === 0}
+                          className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2"
+                          aria-label="Move choice up"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveChoiceDown(questionIndex, choiceIndex)}
+                          disabled={choiceIndex === question.choices.length - 1}
+                          className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors px-2"
+                          aria-label="Move choice down"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
                         {question.choices.length > 2 && (
                           <button
                             type="button"
