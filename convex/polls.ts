@@ -698,3 +698,16 @@ export const deletePoll = mutation({
     return { success: true } as const;
   },
 });
+
+// Return unique voter count for a poll
+export const voterCount = query({
+  args: { pollId: v.id("polls") },
+  handler: async (ctx, args) => {
+    const votes = await ctx.db
+      .query("votes")
+      .withIndex("by_poll_voter", (q) => q.eq("pollId", args.pollId))
+      .collect();
+    const uniqueVoters = new Set(votes.map((v) => v.voterCode ?? null));
+    return uniqueVoters.size;
+  },
+});

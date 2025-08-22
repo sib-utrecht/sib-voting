@@ -3,6 +3,8 @@ import { Id } from "../../convex/_generated/dataModel";
 import { PollDetail } from "./PollDetail";
 import { dateFormat } from "../lib/locale";
 import { PollResults } from "./PollResults";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export interface Poll {
   _id: Id<"polls">;
@@ -24,6 +26,9 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
   const [votedCount, setVotedCount] = useState(0);
 
   const pollId = poll._id;
+
+  // unique voter count from server
+  const voterCount = useQuery(api.polls.voterCount, { pollId: pollId as any });
 
   // Load whether the user has voted for this poll from localStorage
   useEffect(() => {
@@ -57,6 +62,9 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-sm text-gray-500">
             <p>{dateFormat.format(new Date(poll._creationTime))}</p>
+            {typeof voterCount === "number" && (
+              <p className="text-sm text-gray-600">{voterCount} {voterCount === 1 ? "vote" : "votes"}</p>
+            )}
             {
               votedCount > 0 && <p className="text-sm text-green-600 font-medium">You have voted {votedCount} {votedCount === 1 ? "time" : "times"}</p>
             }
