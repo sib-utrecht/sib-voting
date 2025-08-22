@@ -653,3 +653,48 @@ export const exportCsv = mutation({
     return bytes.buffer;
   },
 });
+
+// Delete a poll and all of its related data (votes, questions, choices)
+export const deletePoll = mutation({
+  args: { pollId: v.id("polls"), adminCode: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
+
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    // Delete votes for this poll
+    const votes = await ctx.db
+      .query("votes")
+      .withIndex("by_poll_voter", (q) => q.eq("pollId", args.pollId))
+      .collect();
+
+    for (const vDoc of votes) {
+      await ctx.db.delete(vDoc._id);
+    }
+
+    // Load questions for this poll
+    const questions = await ctx.db
+      .query("questions")
+      .withIndex("by_poll", (q) => q.eq("pollId", args.pollId))
+      .collect();
+
+    // For each question, delete its choices
+    for (const qDoc of questions) {
+      const choices = await ctx.db
+        .query("choices")
+        .withIndex("by_question", (q) => q.eq("questionId", qDoc._id))
+        .collect();
+      for (const ch of choices) {
+        await ctx.db.delete(ch._id);
+      }
+      await ctx.db.delete(qDoc._id);
+    }
+
+    // Finally delete the poll itself
+    await ctx.db.delete(args.pollId);
+
+    return { success: true } as const;
+  },
+});

@@ -31,11 +31,13 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
   const [isActiveLocal, setIsActiveLocal] = useState(poll.isActive);
   const [isVisibleLocal, setIsVisibleLocal] = useState(poll.isVisible ?? true);
   const [resultsVisibleLocal, setResultsVisibleLocal] = useState(poll.resultsVisible);
+  const [isDeleting, setIsDeleting] = useState(false);
   const setActive = useMutation(api.polls.setActive);
   const setVisible = useMutation(api.polls.setVisible);
   const setResultsVisible = useMutation(api.polls.setResultsVisible);
   const moveToTop = useMutation(api.polls.moveToTop);
   const exportCsv = useMutation(api.polls.exportCsv);
+  const deletePoll = useMutation(api.polls.deletePoll);
 
   const handleToggleActive = async () => {
     const next = !isActiveLocal;
@@ -107,6 +109,25 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
       URL.revokeObjectURL(url);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to export CSV");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+    const confirmed = window.confirm(`Delete poll "${poll.title}"? This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      setIsDeleting(true);
+      const res = await deletePoll({ pollId: poll._id, adminCode } as any);
+      if ((res as any)?.error) {
+        toast.error((res as any).error);
+        return;
+      }
+      toast.success("Poll deleted");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to delete poll");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -205,6 +226,24 @@ export function AdminPollCard({ poll, roomCode, adminCode, onEdit }: AdminPollCa
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 19V5" />
                   <path d="M5 12l7-7 7 7" />
+                </svg>
+              </button>
+
+              {/* Delete poll */}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={`p-2 rounded-md transition-colors hover:bg-gray-100 text-red-600 ${isDeleting ? "opacity-60 cursor-not-allowed" : ""}`}
+                title="Delete poll"
+                aria-label="Delete poll"
+              >
+                {/* Trash icon */}
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                 </svg>
               </button>
 
