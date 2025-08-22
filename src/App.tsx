@@ -98,11 +98,11 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xs border-b shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-primary">SIB-Utrecht Voting - {room.name}</h2>
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2 md:h-16 md:flex-row md:justify-between md:items-center">
+          <h2 className="text-xl font-semibold text-primary w-full text-center md:text-left">SIB-Utrecht Voting - {room.name}</h2>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-4 justify-center md:justify-end">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <span className="text-sm text-gray-600">Room:</span>
               <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">{roomCode}</span>
             </div>
@@ -132,7 +132,7 @@ export default function App() {
                   setRoomCode(undefined);
                   navigate("/choose", { replace: true });
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors whitespace-nowrap"
               >
                 Switch Room
               </button>
@@ -143,7 +143,7 @@ export default function App() {
                 setAdminCode(undefined);
                 setRoomCode(undefined);
               }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors whitespace-nowrap"
             >
               Leave Room
             </button>

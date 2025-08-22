@@ -49,3 +49,18 @@ body {
 .auth-button {
   @apply w-full px-4 py-3 rounded bg-primary text-white font-semibold hover:bg-primary-hover transition-colors shadow-xs hover:shadow-sm;
 }
+
+/* Ensure all interactive buttons show a pointer cursor */
+button,
+[role="button"],
+[type="button"],
+[type="submit"] {
+  cursor: pointer;
+}
+
+/* Respect disabled state */
+button:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}

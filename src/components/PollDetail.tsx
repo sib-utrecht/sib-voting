@@ -77,17 +77,29 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-2xl">
+    <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={onBack}
+            aria-label="Back"
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
-            ← Back
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              className="h-5 w-5"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{poll.title}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{poll.title}</h1>
             {poll.description && (
               <p className="text-gray-600 mt-1">{poll.description}</p>
             )}

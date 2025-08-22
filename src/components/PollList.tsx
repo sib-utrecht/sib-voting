@@ -115,13 +115,13 @@ export function PollList({ roomCode }: PollListProps) {
 
       {/* Footer remark about local storage of votes */}
       <div className="border-t pt-6 flex flex-col gap-3 md:flex-row md:items-center text-sm text-gray-500">
-        <p>Polls you have voted on are only stored locally in your browser.</p>
+        <p>Your browser remembers if you have voted on a poll.</p>
         <button
           type="button"
           onClick={clearLocalVotes}
           className="self-start md:self-auto px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          Delete local vote history
+          Delete this from browser
         </button>
       </div>
     </div>
