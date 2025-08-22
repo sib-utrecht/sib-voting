@@ -62,6 +62,11 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
     setIsSubmitting(true);
     try {
       await vote({ pollId,  votes });
+      // Remember that the user has voted on this poll in this browser
+      try {
+        const prevCount = localStorage.getItem(`voted:${pollId}`) ?? "0";
+        localStorage.setItem(`voted:${pollId}`, String(+prevCount + 1));
+      } catch {}
       toast.success("Your vote has been submitted!");
       onBack();
     } catch (error) {

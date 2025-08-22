@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { PollDetail } from "./PollDetail";
 import { dateFormat } from "../lib/locale";
@@ -21,8 +21,20 @@ interface PollCardProps {
 
 export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
   const [showResults, setShowResults] = useState(false);
+  const [votedCount, setVotedCount] = useState(0);
 
   const pollId = poll._id;
+
+  // Load whether the user has voted for this poll from localStorage
+  useEffect(() => {
+    try {
+      const key = `voted:${pollId}`;
+      const value = localStorage.getItem(key) ?? "0";
+      setVotedCount(+value);
+    } catch {
+      setVotedCount(0);
+    }
+  }, [pollId]);
 
   return (
     <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6 hover:shadow-sm transition-shadow"
@@ -41,23 +53,39 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-sm text-gray-500">
             <p>{dateFormat.format(new Date(poll._creationTime))}</p>
+            {
+              votedCount > 0 && <p className="text-sm text-green-600 font-medium">You have voted {votedCount} {votedCount === 1 ? "time" : "times"}</p>
+            }
           </div>
-          {poll.resultsVisible && (
-            <button
-              onClick={() => setShowResults(!showResults)}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
-            >
-              {showResults ? "Hide Results" : "View Results"}
-            </button>
-          )}
-          {poll.isActive && (
-            <button
-              onClick={() => onVote()}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
-            >
-              Vote
-            </button>
-          )}
+          <div className="flex flex-col h-full justify-center gap-2">
+            {poll.resultsVisible && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowResults(!showResults);
+                }}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
+              >
+                {showResults ? "Hide Results" : "View Results"}
+              </button>
+            )}
+            {
+              poll.isActive && (
+                <button
+                  onClick={() => onVote()}
+                  className={
+                    votedCount == 0 ?
+                      "px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
+                      :
+                      // Outline button style
+                      "px-4 py-2 border border-primary text-primary rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  }
+                >
+                  {votedCount > 0 ? "Vote again" : "Vote"}
+                </button>
+              )
+            }
+          </div>
         </div>
       </div>
     </div>

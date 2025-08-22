@@ -13,6 +13,28 @@ export function PollList({ roomCode }: PollListProps) {
   const polls = useQuery(api.polls.list, { roomCode });
   const [votingPollId, setVotingPollId] = useState<Id<"polls"> | undefined>(undefined);
   const [showInactive, setShowInactive] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const clearLocalVotes = () => {
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) keys.push(k);
+      }
+      let removed = 0;
+      for (const k of keys) {
+        if (k.startsWith("voted:")) {
+          localStorage.removeItem(k);
+          removed++;
+        }
+      }
+      // Force cards to remount so they re-read localStorage
+      setRefreshKey((v) => v + 1);
+    } catch {
+      // ignore
+    }
+  };
 
   if (polls === undefined) {
     return (
@@ -45,7 +67,7 @@ export function PollList({ roomCode }: PollListProps) {
       {activePolls.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {activePolls.map((poll) => (
-            <PollCard key={poll._id} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
+            <PollCard key={`${poll._id}:${refreshKey}`} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
           ))}
         </div>
       ) : (
@@ -84,12 +106,24 @@ export function PollList({ roomCode }: PollListProps) {
           {showInactive && (
             <div className="mt-4 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {inactivePolls.map((poll) => (
-                <PollCard key={poll._id} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
+                <PollCard key={`${poll._id}:${refreshKey}`} poll={poll} roomCode={roomCode} onVote={() => setVotingPollId(poll._id)} />
               ))}
             </div>
           )}
         </div>
       )}
+
+      {/* Footer remark about local storage of votes */}
+      <div className="border-t pt-6 flex flex-col gap-3 md:flex-row md:items-center text-sm text-gray-500">
+        <p>Polls you have voted on are only stored locally in your browser.</p>
+        <button
+          type="button"
+          onClick={clearLocalVotes}
+          className="self-start md:self-auto px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Delete local vote history
+        </button>
+      </div>
     </div>
   );
 }
