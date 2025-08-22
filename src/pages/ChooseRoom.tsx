@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function ChooseRoom() {
   const [showCreate, setShowCreate] = useState(true);
-  const [lastCreated, setLastCreated] = useState<{ roomCode: string; adminCode: string } | null>(null);
+  const [lastCreated, setLastCreated] = useState<{ roomCode: string } | null>(null);
   const [_, setRoomCode] = useRoomCode();
   const [adminCode, __] = useAdminCode();
   const navigate = useNavigate();
@@ -33,8 +33,8 @@ export default function ChooseRoom() {
           <div>
             {showCreate ? (
               <CreateRoom
-                onCreated={(roomCode, adminCode) => {
-                  setLastCreated({ roomCode, adminCode });
+                onCreated={(roomCode) => {
+                  setLastCreated({ roomCode });
                   setShowCreate(false);
                 }}
                 onBack={() => setShowCreate(false)}
@@ -47,7 +47,6 @@ export default function ChooseRoom() {
                   <div className="bg-white rounded-lg border border-gray-200 p-4">
                     <h3 className="font-semibold mb-2">Last created</h3>
                     <p className="text-sm text-gray-600">Room Code: <span className="font-mono">{lastCreated.roomCode}</span></p>
-                    <p className="text-sm text-gray-600">Admin Code: <span className="font-mono">{lastCreated.adminCode}</span></p>
                   </div>
                 )}
                 <button

@@ -16,7 +16,7 @@ export const doAuth = query({
 
     if (!user && !room) {
       return {
-        error: `Invalid room code. Is admin: ${!!user}. Room code: ${roomCode}`,
+        error: `Invalid room code.`,
       } as const;
     }
 
@@ -49,7 +49,6 @@ export const createRoom = mutation({
     }
 
     const roomCode = generateRandomCode();
-    const adminCode = generateRandomCode();
 
     // Create the room
     const roomId = await ctx.db.insert("rooms", {
@@ -57,13 +56,7 @@ export const createRoom = mutation({
       name: args.name,
     });
 
-    // Create the admin user
-    await ctx.db.insert("users", {
-      adminCode: adminCode,
-      roomCode: roomCode,
-    });
-
-    return { roomId, roomCode, adminCode };
+    return { roomId, roomCode };
   },
 });
 

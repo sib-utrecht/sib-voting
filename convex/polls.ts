@@ -3,14 +3,19 @@ import { v } from "convex/values";
 import { generateRandomCode } from "./rooms";
 import { requireAdmin, getPoll } from "./utils";
 
-// Shared helpers to avoid repeating admin & poll verification
-
 export const list = query({
   args: { roomCode: v.string() },
   handler: async (ctx, args) => {
+    // Resolve room by code
+    const room = await ctx.db
+      .query("rooms")
+      .withIndex("by_code", (q) => q.eq("code", args.roomCode))
+      .unique();
+    if (!room) return [];
+
     const polls = await ctx.db
       .query("polls")
-      .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .filter((q) => q.eq(q.field("isVisible"), true))
       .collect();
 
@@ -26,9 +31,16 @@ export const list = query({
 export const listAll = query({
   args: { roomCode: v.string() },
   handler: async (ctx, args) => {
+    // Resolve room by code
+    const room = await ctx.db
+      .query("rooms")
+      .withIndex("by_code", (q) => q.eq("code", args.roomCode))
+      .unique();
+    if (!room) return [];
+
     const polls = await ctx.db
       .query("polls")
-      .withIndex("by_room", (q) => q.eq("roomCode", args.roomCode))
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .collect();
 
     const augmented = await Promise.all(
@@ -112,10 +124,17 @@ export const create = mutation({
     const user = await requireAdmin(ctx, args.adminCode);
     if (!user) return { error: "Invalid admin code" } as const;
 
+    // Resolve room by code to get roomId
+    const room = await ctx.db
+      .query("rooms")
+      .withIndex("by_code", (q) => q.eq("code", args.roomCode))
+      .unique();
+    if (!room) return { error: "Room not found" } as const;
+
     const pollId = await ctx.db.insert("polls", {
       title: args.title,
       description: args.description,
-      roomCode: args.roomCode,
+      roomId: room._id,
       isActive: true,
       isVisible: true,
       resultsVisible: false,

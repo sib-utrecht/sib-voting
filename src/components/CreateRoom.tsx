@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 
 interface CreateRoomProps {
-  onCreated?: (roomCode: string, adminCode: string) => void;
+  onCreated?: (roomCode: string) => void;
   onBack?: () => void;
   adminCode: string;
 }
@@ -27,7 +27,7 @@ export function CreateRoom({ onCreated, onBack, adminCode }: CreateRoomProps) {
     }
 
     toast.success(`Room created! Code: ${result.roomCode}`);
-    onCreated?.(result.roomCode, result.adminCode);
+    onCreated?.(result.roomCode);
   };
 
   return (
@@ -49,7 +49,7 @@ export function CreateRoom({ onCreated, onBack, adminCode }: CreateRoomProps) {
               placeholder="Enter room name..."
               maxLength={50}
             />
-            <p className="text-sm text-gray-500 mt-1">Room and admin codes will be generated automatically</p>
+            <p className="text-sm text-gray-500 mt-1">Room code will be generated automatically</p>
           </div>
 
           <div className="flex gap-3 pt-4">

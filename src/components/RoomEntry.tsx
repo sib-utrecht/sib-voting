@@ -10,7 +10,7 @@ export function RoomEntry({ error, onRoomEnter }: RoomEntryProps) {
   const [code, setCode] = useState("");
 
   const handleJoinRoom = () => {
-    if (code.length === 6) {
+    if (code.length === 6 || code.length >= 12) {
       onRoomEnter(code.toUpperCase());
     } else {
       toast.error("Room code must be 6 characters");
@@ -36,7 +36,7 @@ export function RoomEntry({ error, onRoomEnter }: RoomEntryProps) {
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-shadow font-mono text-center text-lg tracking-widest"
               placeholder="ABC123"
-              maxLength={6}
+              maxLength={32}
               onKeyUp={(e) => {
                 if (e.key === "Enter") {
                   handleJoinRoom();
@@ -47,7 +47,7 @@ export function RoomEntry({ error, onRoomEnter }: RoomEntryProps) {
 
           <button
             onClick={handleJoinRoom}
-            disabled={code.length !== 6}
+            disabled={code.length !== 6 && code.length < 12}
             className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Join Room

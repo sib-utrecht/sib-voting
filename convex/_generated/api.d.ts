@@ -18,6 +18,7 @@ import type * as migrations from "../migrations.js";
 import type * as polls from "../polls.js";
 import type * as rooms from "../rooms.js";
 import type * as router from "../router.js";
+import type * as users from "../users.js";
 import type * as utils from "../utils.js";
 
 /**
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   polls: typeof polls;
   rooms: typeof rooms;
   router: typeof router;
+  users: typeof users;
   utils: typeof utils;
 }>;
 export declare const api: FilterApi<
