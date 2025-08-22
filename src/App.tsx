@@ -99,7 +99,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xs border-b shadow-xs">
         <div className="max-w-6xl mx-auto px-4 h-16 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-primary">SIB-Utrecht Voting</h2>
+          <h2 className="text-xl font-semibold text-primary">SIB-Utrecht Voting - {room.name}</h2>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
