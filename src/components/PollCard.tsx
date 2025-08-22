@@ -48,7 +48,11 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
           )}
         </div>
 
-        {showResults && <PollResults pollId={pollId} />}
+        {showResults &&
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <PollResults pollId={pollId} />
+          </div>
+        }
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-sm text-gray-500">

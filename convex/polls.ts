@@ -326,6 +326,20 @@ export const vote = mutation({
   },
 });
 
+export const deleteVote = mutation({
+  args: { adminCode: v.string(), voteId: v.id("votes") },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, args.adminCode);
+    if (!admin) return { error: "Invalid admin code" } as const;
+
+    const vote = await ctx.db.get(args.voteId);
+    if (!vote) return { error: "Vote not found" } as const;
+
+    await ctx.db.delete(args.voteId);
+    return { success: true } as const;
+  },
+});
+
 export const hasVoted = query({
   args: { pollId: v.id("polls"), voterCode: v.string() },
   handler: async (ctx, args) => {
@@ -523,7 +537,7 @@ export const votesTable = query({
       .collect();
 
     // Group votes by voterCode
-    const rowsMap = new Map<string, { voterCode: string | null; firstSeen: number; lastSeen: number; answers: Record<string, { choiceId: string; choiceText: string }>; }>();
+    const rowsMap = new Map<string, { voterCode: string | null; firstSeen: number; lastSeen: number; answers: Record<string, { voteId: string; choiceId: string; choiceText: string }>; }>();
 
     const codeKey = (code: string | null | undefined) => (code ?? "");
 
@@ -540,6 +554,7 @@ export const votesTable = query({
       const row = rowsMap.get(key)!;
       const choiceText = choiceTextById.get(vDoc.choiceId) ?? "";
       row.answers[vDoc.questionId] = {
+        voteId: vDoc._id,
         choiceId: vDoc.choiceId,
         choiceText,
       };
