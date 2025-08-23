@@ -135,7 +135,7 @@ export const create = mutation({
       title: args.title,
       description: args.description,
       roomId: room._id,
-      isActive: true,
+      isActive: false,
       isVisible: true,
       resultsVisible: false,
       sortDate: Date.now(),
