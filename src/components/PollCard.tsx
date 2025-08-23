@@ -61,7 +61,10 @@ export function PollCard({ poll, roomCode, onVote }: PollCardProps) {
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-sm text-gray-500">
-            {/* <p>{dateFormat.format(new Date(poll._creationTime))}</p> */}
+            {/* If the poll is 4 weeks old, display its creation date */}
+            {poll._creationTime < Date.now() - 1000 * 60 * 60 * 24 * 28 ? (
+              <p>{dateFormat.format(new Date(poll._creationTime))}</p>
+            ) : null}
             {typeof voterCount === "number" && (
               <p className="text-sm text-gray-600">{voterCount} {voterCount === 1 ? "vote" : "votes"}</p>
             )}
