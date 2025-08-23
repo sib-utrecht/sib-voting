@@ -8,6 +8,7 @@ import type { Room } from "./types/room";
 import { useNavigate } from "react-router-dom";
 import { useAdminCode, useRoomCode } from "./lib/useCode";
 import { useEffect, useState } from "react";
+import sibLogo from "./assets/sib-logo.png";
 
 export default function App() {
   const [authCode, setAuthCode] = useState<string | undefined>(undefined);
@@ -99,8 +100,8 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xs border-b shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2 md:h-16 md:flex-row md:justify-between items-center">
-          <img src="/sib-logo.png" alt="SIB Utrecht Logo" className="h-9 w-9 m-2" />
-          
+          <img src={sibLogo} alt="SIB Utrecht Logo" className="h-9 w-9 m-2" />
+
           <h2 className="text-xl font-semibold text-primary w-full text-center md:text-left">{room.name}</h2>
 
           <div className="flex flex-wrap md:flex-nowrap items-center gap-4 justify-center md:justify-end">
