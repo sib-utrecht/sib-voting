@@ -62,7 +62,13 @@ export function PollDetail({ pollId, roomCode, onBack }: PollDetailProps) {
 
     setIsSubmitting(true);
     try {
-      await vote({ pollId,  votes });
+      const {error, voterCode} = await vote({ pollId,  votes });
+      if (error) {
+        toast.error(error);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Remember that the user has voted on this poll in this browser
       try {
         const prevCount = localStorage.getItem(`voted:${pollId}`) ?? "0";

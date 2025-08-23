@@ -50,7 +50,7 @@ export function AdminDashboard({ room, adminCode }: AdminDashboardProps) {
         <h2 className="text-2xl font-bold text-gray-900">Polls</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate("/manage")}
+            onClick={() => navigate("/choose")}
             className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors"
             title="Manage rooms (create or join)"
           >

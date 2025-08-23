@@ -313,6 +313,14 @@ export const vote = mutation({
   handler: async (ctx, args) => {
     args.voterCode ??= generateRandomCode(12);
 
+    const poll = await getPoll(ctx, args.pollId);
+    if (!poll) return { error: "Poll not found" } as const;
+
+    // Check if poll is active
+    if (!poll.isActive || !poll.isVisible) {
+      return { error: "Poll is not active" } as const;
+    }
+
     for (const vote of args.votes) {
       await ctx.db.insert("votes", {
         pollId: args.pollId,
@@ -322,7 +330,7 @@ export const vote = mutation({
       });
     }
 
-    return true;
+    return { success: true, voterCode: args.voterCode } as const;
   },
 });
 
