@@ -3,6 +3,8 @@ description: Guidelines and best practices for building Convex projects, includi
 globs: **/*.ts,**/*.tsx,**/*.js,**/*.jsx
 ---
 
+These rules are Copyright (c) 2025 Convex
+
 # Convex guidelines
 ## Function guidelines
 ### New function syntax

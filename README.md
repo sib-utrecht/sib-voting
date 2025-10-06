@@ -1,29 +1,110 @@
-# Voting Website with Polls and Admin Dashboard
-  
-This is a project built with [Chef](https://chef.convex.dev) using [Convex](https://convex.dev) as its backend.
- You can find docs about Chef with useful information like how to deploy to production [here](https://docs.convex.dev/chef).
-  
-This project is connected to the Convex deployment named [`precious-ptarmigan-182`](https://dashboard.convex.dev/d/precious-ptarmigan-182).
-  
-## Project structure
-  
-The frontend code is in the `app` directory and is built with [Vite](https://vitejs.dev/).
-  
-The backend code is in the `convex` directory.
-  
-`npm run dev` will start the frontend and backend servers.
+# SIB-Utrecht Voting Website (vote.sib-utrecht.nl)
 
-## App authentication
+> [!NOTE]  
+> The website is live at [vote.sib-utrecht.nl](https://vote.sib-utrecht.nl)!
+> The room code is shown at the GMA or autofilled from a link you click. The
+> example images show a real room, but with a non-existent room code.
 
-Chef apps use [Convex Auth](https://auth.convex.dev/) with Anonymous auth for easy sign in. You may wish to change this before deploying your app.
+At SIB-Utrecht we hold General Member Assemblies where members can vote. While
+this seems simple, there seemed no existing solution that:
 
-## Developing and deploying your app
+1. Is completely anonymous, with zero tracking of user. Or at least, GDPR
+  compliance.
+2. Is free or almost free.
+3. Allows members to vote a second time if they are authorised.
+4. Indicates if you have already voted on a poll.
+5. Allows for anonymous authentication using a common room code.
+6. Provides real-time vote counts.
+7. Allows polls to be easily opened and closed, and shows this in real-time to
+   the user.
 
-Check out the [Convex docs](https://docs.convex.dev/) for more information on how to develop with Convex.
-* If you're new to Convex, the [Overview](https://docs.convex.dev/understanding/) is a good place to start
-* Check out the [Hosting and Deployment](https://docs.convex.dev/production/) docs for how to deploy your app
-* Read the [Best Practices](https://docs.convex.dev/understanding/best-practices/) guide for tips on how to improve you app further
+In the past, we used a setup of Linktree and CognitoForms to accomplish voting.
+They satisfied requirements 1-3, but none of the other. Most frustratingly,
+votes had to be manually counted (there was no '10 votes for answer Against').
+We had to put links to CognitoForms polls in a Linktree, and people had to
+refresh manually.
 
-## HTTP API
+After struggling with this system for years, the secretary of the board
+2024-2025 (Vincent Kuhlmann) (disclaimer: the author of this text), decided to
+make a new system. It got built on top of modern systems, like Convex, Vite and
+of course TypeScript. This way, in just 3 days of work, with great help from
+Generative AI, the new website was built. Several days later, it was used
+in production, at the Year GMA of 25 August 2025.
 
-User-defined http routes are defined in the `convex/router.ts` file. We split these routes into a separate file from `convex/http.ts` to allow us to prevent the LLM from modifying the authentication routes.
+## User side
+
+The user side page is very simple: you get a list of active polls, and you can
+vote on them.
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/homepage_users2.png" width="600">
+</picture>
+</p>
+
+You can also see a list of previous polls
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/homepage_users1.png" width="600">
+</picture>
+</p>
+
+If the admin has enable showing results for a poll, you can click 'View Results' to view them. A poll is a set of one or more questions, with simple
+choice answers.
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/voteresults1.png" width="300">
+</picture>
+<picture>
+  <img alt="User home page" src="docs/images/voteform1.png" width="300">
+</picture>
+</p>
+
+## Admin side
+
+If logged in as an admin, you can manage polls and create new rooms.
+
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/homepage_admins1.png" width="600">
+</picture>
+</p>
+
+
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/admins_createpoll.png" width="600">
+</picture>
+</p>
+
+<p align="left">
+<picture>
+  <img alt="User home page" src="docs/images/manage_rooms.png" width="600">
+</picture>
+</p>
+
+
+## Tech stack
+
+This is a project using [Vite](https://vitejs.dev/),
+[Tailwind](https://tailwindcss.com/), and with backend
+[Convex](https://convex.dev). It was originally created using
+[Chef](https://chef.convex.dev), and then further developed in VS Code, with
+help from GitHub Copilot.
+
+We use a self-hosted instance of Convex for production.
+
+## License
+
+The project is available under Apache 2 license, see [LICENSE](./LICENSE).
+**This excludes** the files `convex_rules.mdc` and `copilot-instructions.md`;
+they are property of Convex, and may be licensed differently.
+
+## Running locally
+
+1. Clone the repository
+2. Create a `.env.local` file with the contents from `.env.template`, but with
+   the environment variables configured correctly.
+3. Run `npm run dev` to start the web server.
+4. Open the localhost page in your browser.
+
+
