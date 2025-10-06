@@ -8,7 +8,7 @@
 At SIB-Utrecht we hold General Member Assemblies where members can vote. While
 this seems simple, we found no existing solution that:
 
-1. Is completely anonymous, with zero tracking of user. Or at the very least,
+1. Is completely anonymous, with zero tracking of users. Or at the very least,
    GDPR compliant.
 2. Is free or almost free.
 3. Allows members to vote a second time if they are authorised.
@@ -29,7 +29,7 @@ everyone, and very error prone.
 After struggling with this system for years, the secretary of the board
 2024-2025 (and author of this text, Vincent Kuhlmann), decided to
 make a new system. It got built on top of modern technology, like Convex, Vite,
-Tailwind, and of course TypeScript. This way, in just 3 days of work, with great
+Tailwind, TypeScript and React. This way, in just 3 days of work, with great
 help from Generative AI, the new website was built. Several days later, it was
 first used in production, at the Year GMA of 25 August 2025.
 
@@ -89,7 +89,7 @@ If logged in as an admin, you can manage polls and create new rooms.
 ## Tech stack
 
 This is a project using [Vite](https://vitejs.dev/),
-[Tailwind](https://tailwindcss.com/), and with backend
+[Tailwind](https://tailwindcss.com/), React, TypeScript and
 [Convex](https://convex.dev). It was originally created using
 [Chef](https://chef.convex.dev), and then further developed in Cursor and
 VS Code, with help from GitHub Copilot.
@@ -104,7 +104,7 @@ they are property of Convex, and may be licensed differently.
 
 ## Running locally
 
-1. Clone the repository
+1. Clone the repository.
 2. Create a `.env.local` file with the contents from `.env.template`, but with
    the environment variables configured correctly.
 3. Run `npm run dev` to start the web server.
