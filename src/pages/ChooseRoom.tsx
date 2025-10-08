@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAdminCode, useRoomCode } from "@/lib/useCode";
 import { useNavigate } from "react-router-dom";
+import { dateFormat } from "@/lib/locale";
 
 export default function ChooseRoom() {
   const [showCreate, setShowCreate] = useState(true);
@@ -42,7 +43,6 @@ export default function ChooseRoom() {
               />
             ) : (
               <div className="space-y-6">
-                <RoomEntry onRoomEnter={() => { /* no-op */ }} />
                 {lastCreated && (
                   <div className="bg-white rounded-lg border border-gray-200 p-4">
                     <h3 className="font-semibold mb-2">Last created</h3>
@@ -78,7 +78,7 @@ export default function ChooseRoom() {
                     <li key={r._id} className="py-3 flex items-center justify-between">
                       <div>
                         <div className="font-medium">{r.name}</div>
-                        <div className="text-xs text-gray-500">Created {new Date(r._creationTime).toLocaleString()}</div>
+                        <div className="text-xs text-gray-500">Created {dateFormat.format(new Date(r._creationTime))}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-600">Code</span>
